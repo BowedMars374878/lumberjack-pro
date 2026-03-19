@@ -39,15 +39,18 @@ class Point:
 	var frame_time : int ## Time in frames.
 	var time : float ## Time in seconds.
 	var position_scale : float
+	var video_scale : Vector2
 	
-	func _init(screen_coordinates : Vector2, frame : int, second: float, pos_scale : float):
+	func _init(screen_coordinates : Vector2, frame : int, second: float, pos_scale : float, video_player_size : Vector2):
 		self.screen_position = screen_coordinates
 		self.frame_time = frame
 		self.time = second
 		self.position_scale = pos_scale
+		self.video_scale = video_player_size
 	
 	func get_position() -> Vector2:
-		return Vector2((screen_position / position_scale))
+		var scaled_position : Vector2 = (screen_position / position_scale)
+		return Vector2(scaled_position.x, video_scale.y - scaled_position.y)
 
 
 # Called when the node enters the scene tree for the first time.
@@ -104,6 +107,9 @@ func handle_click() -> void:
 			point_selected = false
 			selected_point = Vector2(-1, -1)
 			
+			for point in points:
+				point.position_scale = meter_length
+			
 			point_renderer.queue_redraw()
 			graph.queue_redraw()
 	
@@ -123,7 +129,7 @@ func handle_click() -> void:
 			
 			var frame_time =  video_player.current_frame
 			
-			points.append(Point.new(mouse_location, frame_time, frame_time / second_length, meter_length))
+			points.append(Point.new(mouse_location, frame_time, frame_time / second_length, meter_length, video_player.size))
 			point_renderer.queue_redraw()
 			graph.queue_redraw()
 	
@@ -250,7 +256,9 @@ func save_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int
 			"screen_position_y": point.screen_position.y,
 			"time": point.time,
 			"frame_time": point.frame_time,
-			"meter_length": point.meter_length
+			"position_scale": point.position_scale,
+			"video_scale_x": point.video_scale.x,
+			"video_scale_y": point.video_scale.y
 		}
 		
 		# JSON provides a static method to serialized JSON string.
@@ -295,6 +303,6 @@ func load_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int
 		# Get the data from the JSON object.
 		var point_data = json.data
 		# And load it as a point.
-		points.append(Point.new(Vector2(point_data.screen_position_x, point_data.screen_position_y), point_data.frame_time, point_data.time, point_data.meter_length))
+		points.append(Point.new(Vector2(point_data.screen_position_x, point_data.screen_position_y), point_data.frame_time, point_data.time, point_data.position_scale, Vector2(point_data.video_scale_x, point_data.video_scale_y)))
 		point_renderer.queue_redraw()
 		graph.queue_redraw()

@@ -6,4 +6,4 @@ Features will be added on request! Just submit an Issue on the GitHub page (or a
 
 ---
 
-This software uses the GDE GoZen library by Voylin.
+This software uses the Godot Game Engine alongside the GDE GoZen library by Voylin, protected under the LGPL-2.1 license, which is included inside of the addon's folder. You can find the source code for Voylin's library here: https://github.com/VoylinsGamedevJourney/gde_gozen

@@ -299,5 +299,6 @@ func load_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int
 		var point_data = json.data
 		# And load it as a point.
 		points.append(Point.new(Vector2(point_data.screen_position_x, point_data.screen_position_y), point_data.frame_time, point_data.time, point_data.position_scale, Vector2(point_data.video_scale_x, point_data.video_scale_y)))
-		point_renderer.queue_redraw()
-		graph.queue_redraw()
+	
+	point_renderer.queue_redraw()
+	graph.queue_redraw()

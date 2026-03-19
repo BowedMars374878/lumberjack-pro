@@ -49,8 +49,7 @@ class Point:
 		self.video_scale = video_player_size
 	
 	func get_position() -> Vector2:
-		var scaled_position : Vector2 = (screen_position / position_scale)
-		return Vector2(scaled_position.x, video_scale.y - scaled_position.y)
+		return Vector2(screen_position.x / position_scale, (video_scale.y - screen_position.y) / position_scale)
 
 
 # Called when the node enters the scene tree for the first time.
@@ -122,10 +121,6 @@ func handle_click() -> void:
 				if point.frame_time == video_player.current_frame:
 					error_logger.text = "You already have a point for this frame!"
 					return
-			var point_position = Vector2(
-				mouse_location.x,
-				video_player.size.y - mouse_location.y
-			)
 			
 			var frame_time =  video_player.current_frame
 			

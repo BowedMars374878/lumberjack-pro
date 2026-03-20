@@ -20,8 +20,8 @@ var frames_to_skip : int = 0
 
 var points : Array[Point] = []
 
-var undo_action : Callable = func(): pass
-var undo_arguments : Array = []
+var undo_action : Array[Callable]
+var undo_arguments : Array[Array] = []
 
 var mouse_in_textbox : bool = false
 
@@ -121,9 +121,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("rotate"):
 		_on_rotate_pressed()
 	if event.is_action_pressed("undo"):
-		undo_action.callv(undo_arguments)
-		undo_action = func(): pass
-		undo_arguments = []
+		undo_action[0].callv(undo_arguments[0])
+		undo_action.remove_at(0)
+		undo_arguments.remove_at(0)
 		point_renderer.queue_redraw()
 		graph.queue_redraw()
 
@@ -154,12 +154,12 @@ func handle_click() -> void:
 			selected_point = mouse_location # Sets a first point if there isn't one already
 			point_selected = true
 		else:
-			undo_action = func(meter_scale : float):
+			undo_action.insert(0, func(meter_scale : float):
 				meter_length = meter_scale
 				
 				for point in points:
-					point.position_scale = meter_length
-			undo_arguments = [meter_length]
+					point.position_scale = meter_length)
+			undo_arguments.insert(0, [meter_length])
 			
 			meter_length = selected_point.distance_to(mouse_location)
 			point_selected = false
@@ -186,12 +186,11 @@ func handle_click() -> void:
 			var new_point = Point.new(mouse_location, frame_time, frame_time / second_length, meter_length, video_player.size)
 			points.append(new_point)
 			
-			undo_action = func(frames_skipped : int):
+			undo_action.insert(0, func(frames_skipped : int):
 				points.erase(new_point)
 				video_player.current_frame -= frames_skipped
-				video_player.seek_frame(video_player.current_frame)
-			
-			undo_arguments = [frames_to_skip]
+				video_player.seek_frame(video_player.current_frame))
+			undo_arguments.insert(0, [frames_to_skip])
 			
 			for i in range(frames_to_skip):
 				video_player.next_frame()
@@ -213,8 +212,8 @@ func handle_click() -> void:
 				shortest_distance = nearest_point.screen_position.distance_to(mouse_location)
 		
 		if shortest_distance < 3:
-			undo_action = points.append
-			undo_arguments = [nearest_point]
+			undo_action.insert(0, points.append)
+			undo_arguments.insert(0, [nearest_point])
 			
 			points.erase(nearest_point)
 			point_renderer.queue_redraw()
@@ -302,6 +301,11 @@ func _on_next_frame_pressed() -> void:
 		error_logger.text = "No video loaded!"
 		return
 	
+	undo_action.insert(0, func():
+		video_player.current_frame -= 1
+		video_player.seek_frame(video_player.current_frame))
+	undo_arguments.insert(0, [])
+	
 	video_player.next_frame()
 	video_player.current_frame += 1
 
@@ -388,7 +392,7 @@ func load_from_file(success: bool, filepaths: PackedStringArray, chosen_filetype
 	else:
 		legacy_load_file(save_file)
 	
-	undo_action = func(): pass
+	undo_action = []
 	undo_arguments = []
 
 
@@ -501,12 +505,12 @@ func rotate_video_player():
 
 
 func _on_rotate_pressed() -> void:
-	undo_action = func():
+	undo_action.insert(0, func():
 		video_player_degrees -= 90
 		if video_player_degrees == -90:
 			video_player_degrees = 270
-		rotate_video_player()
-	undo_arguments = []
+		rotate_video_player())
+	undo_arguments.insert(0, [])
 	
 	video_player_degrees += 90
 	if video_player_degrees == 360:

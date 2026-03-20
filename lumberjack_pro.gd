@@ -23,6 +23,8 @@ var points : Array[Point] = []
 var undo_action : Callable = func(): pass
 var undo_arguments : Array = []
 
+var mouse_in_textbox : bool = false
+
 @onready var error_logger : Label = $Panel/ErrorLog
 @onready var video_player : VideoPlayback = $VideoPlayerCenter/VideoPlayer
 @onready var video_player_box : ColorRect = $VideoPlayerCenter/VideoPlayer/ColorRect
@@ -126,7 +128,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		graph.queue_redraw()
 
 
+func is_mouse_in_textbox() -> bool:
+	var mouse_pos = get_global_mouse_position()
+	var text_box_pos = frames_edit.global_position
+	var text_box_size = frames_edit.size
+	
+	if mouse_pos.x <= text_box_pos.x + text_box_size.x and mouse_pos.x >= text_box_pos.x:
+		if mouse_pos.y <= text_box_pos.y + text_box_size.y and mouse_pos.y >= text_box_pos.y:
+			return true
+	
+	return false
+
+
 func handle_click() -> void:
+	if !is_mouse_in_textbox():
+		frames_edit.release_focus()
+	
 	var mouse_location : Vector2 = get_global_mouse_position()
 	
 	if mouse_location.x > video_size.x or mouse_location.y > video_size.y:
@@ -169,8 +186,12 @@ func handle_click() -> void:
 			var new_point = Point.new(mouse_location, frame_time, frame_time / second_length, meter_length, video_player.size)
 			points.append(new_point)
 			
-			undo_action = points.erase
-			undo_arguments = [new_point]
+			undo_action = func(frames_skipped : int):
+				points.erase(new_point)
+				video_player.current_frame -= frames_skipped
+				video_player.seek_frame(video_player.current_frame)
+			
+			undo_arguments = [frames_to_skip]
 			
 			for i in range(frames_to_skip):
 				video_player.next_frame()

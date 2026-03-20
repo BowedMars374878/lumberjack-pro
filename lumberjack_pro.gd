@@ -1,5 +1,7 @@
 extends Control
 
+const version_number = 1.3
+
 var base_directory : String = OS.get_system_dir(OS.SYSTEM_DIR_MOVIES)
 var file_types : PackedStringArray = PackedStringArray(["*"])
 var file_extension : PackedStringArray = PackedStringArray(["*.lumber"])
@@ -11,6 +13,8 @@ var meter_length : float ## The length of a meter in pixels.
 var second_length : float ## The length of a second in frames (the fps).
 
 var video_loaded = false
+var temp_video_path
+var video_path
 
 var points : Array[Point] = []
 var erases = 0
@@ -157,6 +161,7 @@ func _on_file_selected(success: bool, filepaths: PackedStringArray, chosen_filet
 		error_logger.text = "File selection cancelled by user."
 		return
 	
+	temp_video_path = filepaths[0]
 	video_player.set_video_path(filepaths[0])
 
 
@@ -180,6 +185,7 @@ func _on_video_loaded() -> void:
 	video_timeline.max_value = video_player.get_video_frame_count()
 	video_timeline.value = 0
 	second_length = video_player.get_video_framerate()
+	video_path = temp_video_path
 	video_loaded = true
 	video_player.pause()
 	point_renderer.queue_redraw()
@@ -230,11 +236,12 @@ func _on_next_frame_pressed() -> void:
 
 
 func _on_save_pressed() -> void:
-	var error : Error = DisplayServer.file_dialog_show("Save graph", base_directory, "", false, DisplayServer.FILE_DIALOG_MODE_SAVE_FILE, file_extension, save_file)
+	var error : Error = DisplayServer.file_dialog_show("Save graph", base_directory, "", false, DisplayServer.FILE_DIALOG_MODE_SAVE_FILE, file_extension, save_to_file)
 	if error:
 		error_logger.text = "Error with file selection."
 
-func save_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int) -> void:
+
+func save_to_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int) -> void:
 	if success == false:
 		error_logger.text = "File selection cancelled by user."
 		return
@@ -244,16 +251,27 @@ func save_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int
 		filepath += ".lumber"
 	
 	var save_file = FileAccess.open(filepath, FileAccess.WRITE)
+	
+	var graph_info = {
+		"version_number": version_number,
+		"video_scale_x": video_size.x,
+		"video_scale_y": video_size.y,
+		"meter_length": meter_length,
+		"video_path": video_path
+	}
+	
+	# JSON provides a static method to serialized JSON string.
+	var info_string = JSON.stringify(graph_info)
 
+	# Store the save dictionary as a new line in the save file.
+	save_file.store_line(info_string)
+	
 	for point : Point in points:
 		var save_dict = {
 			"screen_position_x": point.screen_position.x,
 			"screen_position_y": point.screen_position.y,
 			"time": point.time,
 			"frame_time": point.frame_time,
-			"position_scale": point.position_scale,
-			"video_scale_x": point.video_scale.x,
-			"video_scale_y": point.video_scale.y
 		}
 		
 		# JSON provides a static method to serialized JSON string.
@@ -264,11 +282,12 @@ func save_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int
 
 
 func _on_load_pressed() -> void:
-	var error : Error = DisplayServer.file_dialog_show("Load graph", base_directory, "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE, file_extension, load_file)
+	var error : Error = DisplayServer.file_dialog_show("Load graph", base_directory, "", false, DisplayServer.FILE_DIALOG_MODE_OPEN_FILE, file_extension, load_from_file)
 	if error:
 		error_logger.text = "Error with file selection."
 
-func load_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int) -> void:
+
+func load_from_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int) -> void:
 	if success == false:
 		error_logger.text = "File selection cancelled by user."
 		return
@@ -277,27 +296,76 @@ func load_file(success: bool, filepaths: PackedStringArray, chosen_filetype: int
 	
 	if not FileAccess.file_exists(filepath):
 		return # Error! We don't have a save to load.
+	
+	var save_file = FileAccess.open(filepath, FileAccess.READ)
 
+	# Creates the helper class to interact with JSON.
+	var json = JSON.new()
+	var parse_result = json.parse(save_file.get_line())
+	
+	if not parse_result == OK:
+		error_logger.text = "Failed to load file: Error parsing json."
+		return
+	
+	save_file.seek(0) # Move back to the start of the file to begin reading
+	if json.data.has("version_number"):
+		load_file(save_file)
+	else:
+		legacy_load_file(save_file)
+
+
+func load_file(save_file) -> void:
+	var graph_info = save_file.get_line()
+	var json = JSON.new()
+	var graph_parse_result = json.parse(graph_info)
+	var graph_data = json.data
+	
+	video_size = Vector2(graph_data.video_scale_x, graph_data.video_scale_y)
+	meter_length = graph_data.meter_length
+	
 	points = []
-
+	
 	# Load the file line by line and process that dictionary to restore
 	# the object it represents.
-	var save_file = FileAccess.open(filepath, FileAccess.READ)
 	while save_file.get_position() < save_file.get_length():
 		var json_string = save_file.get_line()
-
-		# Creates the helper class to interact with JSON.
-		var json = JSON.new()
-
+		
 		# Check if there is any error while parsing the JSON string, skip in case of failure.
 		var parse_result = json.parse(json_string)
 		if not parse_result == OK:
 			print("JSON Parse Error: ", json.get_error_message(), " in ", json_string, " at line ", json.get_error_line())
 			continue
+		
+		# Get the data from the JSON object.
+		var point_data = json.data
+		# And load it as a point.
+		points.append(Point.new(Vector2(point_data.screen_position_x, point_data.screen_position_y), point_data.frame_time, point_data.time, meter_length, video_size))
+	
+	point_renderer.queue_redraw()
+	graph.queue_redraw()
 
+
+func legacy_load_file(save_file) -> void:
+	points = []
+
+	# Load the file line by line and process that dictionary to restore
+	# the object it represents.
+	while save_file.get_position() < save_file.get_length():
+		var json_string = save_file.get_line()
+		
+		# Creates the helper class to interact with JSON.
+		var json = JSON.new()
+		
+		# Check if there is any error while parsing the JSON string, skip in case of failure.
+		var parse_result = json.parse(json_string)
+		if not parse_result == OK:
+			print("JSON Parse Error: ", json.get_error_message(), " in ", json_string, " at line ", json.get_error_line())
+			continue
+		
 		# Get the data from the JSON object.
 		var point_data = json.data
 		# And load it as a point.
 		points.append(Point.new(Vector2(point_data.screen_position_x, point_data.screen_position_y), point_data.frame_time, point_data.time, point_data.position_scale, Vector2(point_data.video_scale_x, point_data.video_scale_y)))
-		point_renderer.queue_redraw()
-		graph.queue_redraw()
+	
+	point_renderer.queue_redraw()
+	graph.queue_redraw()

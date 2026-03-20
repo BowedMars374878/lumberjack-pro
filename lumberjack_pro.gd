@@ -15,12 +15,13 @@ var second_length : float ## The length of a second in frames (the fps).
 var video_loaded = false
 var temp_video_path
 var video_path
+var video_player_degrees : int = 0
 
 var points : Array[Point] = []
-var erases = 0
 
 @onready var error_logger : Label = $Panel/ErrorLog
-@onready var video_player : VideoPlayback = $VideoPlayer
+@onready var video_player : VideoPlayback = $VideoPlayerCenter/VideoPlayer
+@onready var video_player_box : ColorRect = $VideoPlayerCenter/VideoPlayer/ColorRect
 @onready var video_timeline : HSlider = $TimelineBar
 @onready var graph: ColorRect = $Graph
 
@@ -35,18 +36,21 @@ var erases = 0
 
 @onready var point_renderer : Control = $PointsDrawing
 
+@onready var video_default_size : Vector2i = video_player.size
 @onready var video_size : Vector2i = video_player.size
 
 ## Class for storing data about a point.
 class Point:
 	var screen_position : Vector2 ## Position in pixels of where the click occurred.
+	var original_screen_position : Vector2
 	var frame_time : int ## Time in frames.
 	var time : float ## Time in seconds.
 	var position_scale : float
 	var video_scale : Vector2
 	
-	func _init(screen_coordinates : Vector2, frame : int, second: float, pos_scale : float, video_player_size : Vector2):
+	func _init(screen_coordinates : Vector2, frame : int, second: float, pos_scale : float, video_player_size : Vector2, original_screen_coordinates : Vector2 = screen_coordinates):
 		self.screen_position = screen_coordinates
+		self.original_screen_position = original_screen_coordinates
 		self.frame_time = frame
 		self.time = second
 		self.position_scale = pos_scale
@@ -80,7 +84,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("erase"):
 		eraser_button.button_pressed = true
 		_on_eraser_tool_pressed()
-	if event.is_action_pressed("ruler"):
+	if event.is_action_pressed("scale"):
 		ruler_button.button_pressed = true
 		_on_set_scale_tool_pressed()
 	if event.is_action_pressed("add"):
@@ -93,6 +97,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_next_frame_pressed()
 	if event.is_action_pressed("save"):
 		_on_save_pressed()
+	if event.is_action_pressed("rotate"):
+		_on_rotate_pressed()
 
 
 func handle_click() -> void:
@@ -257,7 +263,8 @@ func save_to_file(success: bool, filepaths: PackedStringArray, chosen_filetype: 
 		"video_scale_x": video_size.x,
 		"video_scale_y": video_size.y,
 		"meter_length": meter_length,
-		"video_path": video_path
+		"video_path": video_path,
+		"video_player_degrees": video_player_degrees
 	}
 	
 	# JSON provides a static method to serialized JSON string.
@@ -270,6 +277,8 @@ func save_to_file(success: bool, filepaths: PackedStringArray, chosen_filetype: 
 		var save_dict = {
 			"screen_position_x": point.screen_position.x,
 			"screen_position_y": point.screen_position.y,
+			"original_screen_position_x": point.original_screen_position.x,
+			"original_screen_position_y": point.original_screen_position.y,
 			"time": point.time,
 			"frame_time": point.frame_time,
 		}
@@ -321,12 +330,17 @@ func load_file(save_file) -> void:
 	var graph_data = json.data
 	
 	video_size = Vector2(graph_data.video_scale_x, graph_data.video_scale_y)
+	print(str(meter_length))
 	meter_length = graph_data.meter_length
+	print(str(meter_length))
 	
 	if graph_data.has("video_path") and graph_data.video_path != null:
 		if FileAccess.file_exists(graph_data.video_path):
 			video_path = graph_data.video_path
 			_on_file_selected(true, PackedStringArray([video_path]), 0)
+			
+			video_player_degrees = graph_data.video_player_degrees
+			rotate_video_player()
 		else:
 			error_logger.text = "Failed to find saved video at filepath."
 	
@@ -346,7 +360,7 @@ func load_file(save_file) -> void:
 		# Get the data from the JSON object.
 		var point_data = json.data
 		# And load it as a point.
-		points.append(Point.new(Vector2(point_data.screen_position_x, point_data.screen_position_y), point_data.frame_time, point_data.time, meter_length, video_size))
+		points.append(Point.new(Vector2(point_data.screen_position_x, point_data.screen_position_y), point_data.frame_time, point_data.time, meter_length, video_size, Vector2(point_data.original_screen_position_x, point_data.original_screen_position_y)))
 	
 	point_renderer.queue_redraw()
 	graph.queue_redraw()
@@ -371,8 +385,54 @@ func legacy_load_file(save_file) -> void:
 		
 		# Get the data from the JSON object.
 		var point_data = json.data
+		
+		var point_position : Vector2 = Vector2(point_data.screen_position_x, point_data.screen_position_y)
+		point_position.y = point_position.y * 500 / 340 # The video player size changed since v1.2.1
+		
 		# And load it as a point.
-		points.append(Point.new(Vector2(point_data.screen_position_x, point_data.screen_position_y), point_data.frame_time, point_data.time, point_data.position_scale, Vector2(point_data.video_scale_x, point_data.video_scale_y)))
+		points.append(Point.new(point_position, point_data.frame_time, point_data.time, point_data.position_scale, Vector2(point_data.video_scale_x, point_data.video_scale_y), point_position))
 	
 	point_renderer.queue_redraw()
 	graph.queue_redraw()
+
+
+func rotate_video_player():
+	if (video_player_degrees / 90) % 2 != 0:
+		video_player.rotation_degrees = video_player_degrees
+		video_size = Vector2(video_default_size.y, video_default_size.x)
+		
+		if video_player_degrees == 270:
+			for point in points:
+				point.screen_position = Vector2(point.original_screen_position.y, point.original_screen_position.x)
+		else:
+			for point in points:
+				point.screen_position = Vector2(video_size.x - point.original_screen_position.y, video_size.y - point.original_screen_position.x)
+	else:
+		video_player.rotation_degrees = video_player_degrees
+		video_size = video_default_size
+		
+		if video_player_degrees == 180:
+			for point in points:
+				point.screen_position = Vector2(video_size) - point.original_screen_position
+		else:
+			for point in points:
+				point.screen_position = point.original_screen_position
+	
+	video_player.size = video_size
+	video_player_box.size = video_size
+	
+	video_player_box.pivot_offset = video_size / 2
+	video_player.pivot_offset = video_size / 2
+	
+	video_player.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_KEEP_SIZE)
+	video_player_box.set_anchors_and_offsets_preset(Control.PRESET_CENTER, Control.PRESET_MODE_KEEP_SIZE)
+	
+	point_renderer.queue_redraw()
+	graph.queue_redraw()
+
+
+func _on_rotate_pressed() -> void:
+	video_player_degrees += 90
+	if video_player_degrees == 360:
+		video_player_degrees = 0
+	rotate_video_player()

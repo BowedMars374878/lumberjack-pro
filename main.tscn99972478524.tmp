@@ -23,51 +23,27 @@ layout_mode = 3
 anchors_preset = 0
 script = ExtResource("1_0xm2m")
 
-[node name="VideoPlayerCenter" type="Control" parent="." unique_id=719473561]
+[node name="VideoPlayer" type="Control" parent="." unique_id=30043319]
 anchors_preset = 0
-offset_left = 250.0
-offset_top = 250.0
-offset_right = 250.0
-offset_bottom = 250.0
-
-[node name="VideoPlayer" type="Control" parent="VideoPlayerCenter" unique_id=30043319]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -250.0
-offset_top = -250.0
-offset_right = 250.0
-offset_bottom = 250.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_right = 500.0
+offset_bottom = 340.0
+pivot_offset = Vector2(250, 170)
 script = ExtResource("1_ig7tw")
 enable_audio = false
 metadata/_custom_type_script = "uid://ivx7m2bfysip"
 
-[node name="ColorRect" type="ColorRect" parent="VideoPlayerCenter/VideoPlayer" unique_id=1970529461]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -250.0
-offset_top = -250.0
-offset_right = 250.0
-offset_bottom = 250.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="ColorRect" type="ColorRect" parent="VideoPlayer" unique_id=1970529461]
+layout_mode = 0
+offset_right = 500.0
+offset_bottom = 340.0
 color = Color(0.17641911, 0.17641908, 0.17641908, 1)
 
 [node name="ImportVideo" type="Button" parent="." unique_id=1734830530]
 layout_mode = 0
 offset_left = 5.0
-offset_top = 544.0
+offset_top = 384.0
 offset_right = 119.0
-offset_bottom = 578.0
+offset_bottom = 418.0
 tooltip_text = "Import a video from a file. Some formats are not supported."
 focus_mode = 0
 text = "Import Video"
@@ -75,9 +51,9 @@ text = "Import Video"
 [node name="Panel" type="Panel" parent="." unique_id=845468954]
 layout_mode = 0
 offset_left = 125.0
-offset_top = 544.0
+offset_top = 384.0
 offset_right = 500.0
-offset_bottom = 578.0
+offset_bottom = 418.0
 
 [node name="ErrorLog" type="Label" parent="Panel" unique_id=2039038550]
 layout_mode = 0
@@ -94,7 +70,7 @@ offset_left = 504.0
 offset_top = 3.0
 offset_right = 538.0
 offset_bottom = 37.0
-tooltip_text = "Scale Tool (S)
+tooltip_text = "Ruler Tool (R)
 Defines how long the graph
 thinks 1 meter is."
 focus_mode = 0
@@ -267,9 +243,9 @@ expand_mode = 1
 [node name="NextFrame" type="Button" parent="." unique_id=652454755]
 layout_mode = 0
 offset_left = 45.0
-offset_top = 504.0
+offset_top = 344.0
 offset_right = 79.0
-offset_bottom = 538.0
+offset_bottom = 378.0
 tooltip_text = "Next Frame (F)
 Advances the timeline by
 a single frame."
@@ -288,18 +264,18 @@ expand_mode = 1
 [node name="TimelineBar" type="HSlider" parent="." unique_id=218740212]
 layout_mode = 0
 offset_left = 93.0
-offset_top = 513.0
+offset_top = 353.0
 offset_right = 499.0
-offset_bottom = 529.0
+offset_bottom = 369.0
 focus_mode = 0
 max_value = 0.0
 
 [node name="PlayButton" type="Button" parent="." unique_id=2039619820]
 layout_mode = 0
 offset_left = 5.0
-offset_top = 504.0
+offset_top = 344.0
 offset_right = 39.0
-offset_bottom = 538.0
+offset_bottom = 378.0
 tooltip_text = "Pause/Play (Spacebar)
 Pauses the video or sets it playing."
 focus_mode = 0
@@ -532,8 +508,8 @@ theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_font_sizes/font_size = 16
 text = "X Position vs. Time"
 
-[connection signal="next_frame_called" from="VideoPlayerCenter/VideoPlayer" to="." method="_on_video_player_next_frame_called"]
-[connection signal="video_loaded" from="VideoPlayerCenter/VideoPlayer" to="." method="_on_video_loaded"]
+[connection signal="next_frame_called" from="VideoPlayer" to="." method="_on_video_player_next_frame_called"]
+[connection signal="video_loaded" from="VideoPlayer" to="." method="_on_video_loaded"]
 [connection signal="pressed" from="ImportVideo" to="." method="_on_import_button_pressed"]
 [connection signal="pressed" from="SetScaleTool" to="." method="_on_set_scale_tool_pressed"]
 [connection signal="pressed" from="EraserTool" to="." method="_on_eraser_tool_pressed"]

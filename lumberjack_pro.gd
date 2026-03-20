@@ -16,6 +16,7 @@ var video_loaded = false
 var temp_video_path
 var video_path
 var video_player_degrees : int = 0
+var frames_to_skip : int = 0
 
 var points : Array[Point] = []
 
@@ -38,6 +39,8 @@ var points : Array[Point] = []
 
 @onready var video_default_size : Vector2i = video_player.size
 @onready var video_size : Vector2i = video_player.size
+
+@onready var frames_edit : LineEdit = $Panel2/LineEdit
 
 ## Class for storing data about a point.
 class Point:
@@ -73,9 +76,9 @@ func _process(delta: float) -> void:
 	if video_loaded:
 		if selected_tool == "cursor":
 			return
-		
-		if Input.is_action_just_pressed("m1"):
-			handle_click()
+	
+	if Input.is_action_just_pressed("m1"):
+		handle_click()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -135,6 +138,11 @@ func handle_click() -> void:
 			var frame_time =  video_player.current_frame
 			
 			points.append(Point.new(mouse_location, frame_time, frame_time / second_length, meter_length, video_player.size))
+			
+			for i in range(frames_to_skip):
+				video_player.next_frame()
+				video_player.current_frame += 1
+				
 			point_renderer.queue_redraw()
 			graph.queue_redraw()
 	
@@ -264,7 +272,8 @@ func save_to_file(success: bool, filepaths: PackedStringArray, chosen_filetype: 
 		"video_scale_y": video_size.y,
 		"meter_length": meter_length,
 		"video_path": video_path,
-		"video_player_degrees": video_player_degrees
+		"video_player_degrees": video_player_degrees,
+		"frames_to_skip": frames_to_skip
 	}
 	
 	# JSON provides a static method to serialized JSON string.
@@ -330,9 +339,9 @@ func load_file(save_file) -> void:
 	var graph_data = json.data
 	
 	video_size = Vector2(graph_data.video_scale_x, graph_data.video_scale_y)
-	print(str(meter_length))
 	meter_length = graph_data.meter_length
-	print(str(meter_length))
+	frames_to_skip = graph_data.frames_to_skip
+	frames_edit.text = str(frames_to_skip)
 	
 	if graph_data.has("video_path") and graph_data.video_path != null:
 		if FileAccess.file_exists(graph_data.video_path):
@@ -436,3 +445,7 @@ func _on_rotate_pressed() -> void:
 	if video_player_degrees == 360:
 		video_player_degrees = 0
 	rotate_video_player()
+
+
+func _on_line_edit_text_changed(new_text: String) -> void:
+	frames_to_skip = int(new_text)

@@ -137,6 +137,13 @@ func handle_click() -> void:
 			selected_point = mouse_location # Sets a first point if there isn't one already
 			point_selected = true
 		else:
+			undo_action = func(meter_scale : float):
+				meter_length = meter_scale
+				
+				for point in points:
+					point.position_scale = meter_length
+			undo_arguments = [meter_length]
+			
 			meter_length = selected_point.distance_to(mouse_location)
 			point_selected = false
 			selected_point = Vector2(-1, -1)

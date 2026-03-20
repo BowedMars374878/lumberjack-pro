@@ -161,10 +161,9 @@ func handle_click() -> void:
 			
 			var new_point = Point.new(mouse_location, frame_time, frame_time / second_length, meter_length, video_player.size)
 			points.append(new_point)
-			undo_action = func():
-				points.erase(new_point)
 			
-			undo_arguments = []
+			undo_action = points.erase
+			undo_arguments = [new_point]
 			
 			for i in range(frames_to_skip):
 				video_player.next_frame()
@@ -187,16 +186,8 @@ func handle_click() -> void:
 		
 		if shortest_distance < 3:
 			undo_action = points.append
-			undo_arguments = [
-				Point.new(
-					nearest_point.screen_position,
-					nearest_point.frame_time,
-					nearest_point.time,
-					nearest_point.position_scale,
-					nearest_point.video_scale,
-					nearest_point.original_screen_position
-				)
-			]
+			undo_arguments = [nearest_point]
+			
 			points.erase(nearest_point)
 			point_renderer.queue_redraw()
 			graph.queue_redraw()

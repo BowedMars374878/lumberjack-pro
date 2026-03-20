@@ -20,6 +20,9 @@ var frames_to_skip : int = 0
 
 var points : Array[Point] = []
 
+var undo_action : Callable = func(): pass
+var undo_arguments : Array = []
+
 @onready var error_logger : Label = $Panel/ErrorLog
 @onready var video_player : VideoPlayback = $VideoPlayerCenter/VideoPlayer
 @onready var video_player_box : ColorRect = $VideoPlayerCenter/VideoPlayer/ColorRect
@@ -41,6 +44,19 @@ var points : Array[Point] = []
 @onready var video_size : Vector2i = video_player.size
 
 @onready var frames_edit : LineEdit = $Panel2/LineEdit
+
+class Action:
+	var undo : Callable
+	var undo_args : Array
+	
+	func _init(undo_instructions : Callable, undo_arguments : Array) -> void:
+		self.undo = undo_instructions
+		self.undo_args = undo_arguments
+	
+	
+	func undo_action():
+		undo.callv(undo_args)
+
 
 ## Class for storing data about a point.
 class Point:
@@ -102,6 +118,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_save_pressed()
 	if event.is_action_pressed("rotate"):
 		_on_rotate_pressed()
+	if event.is_action_pressed("undo"):
+		undo_action.callv(undo_arguments)
+		undo_action = func(): pass
+		undo_arguments = []
+		point_renderer.queue_redraw()
+		graph.queue_redraw()
 
 
 func handle_click() -> void:
@@ -150,7 +172,7 @@ func handle_click() -> void:
 		var nearest_point : Point
 		var shortest_distance : float
 		
-		for point in points:
+		for point : Point in points:
 			if nearest_point == null:
 				nearest_point = point
 				shortest_distance = nearest_point.screen_position.distance_to(mouse_location)
@@ -159,6 +181,17 @@ func handle_click() -> void:
 				shortest_distance = nearest_point.screen_position.distance_to(mouse_location)
 		
 		if shortest_distance < 3:
+			undo_action = points.append
+			undo_arguments = [
+				Point.new(
+					nearest_point.screen_position,
+					nearest_point.frame_time,
+					nearest_point.time,
+					nearest_point.position_scale,
+					nearest_point.video_scale,
+					nearest_point.original_screen_position
+				)
+			]
 			points.erase(nearest_point)
 			point_renderer.queue_redraw()
 			graph.queue_redraw()

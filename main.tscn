@@ -275,8 +275,8 @@ offset_left = 504.0
 offset_top = 269.0
 offset_right = 538.0
 offset_bottom = 303.0
-tooltip_text = "Load
-Loads a graph from a file."
+tooltip_text = "Rotate (R)
+Rotates the graph and video player by 90 degrees."
 focus_mode = 0
 
 [node name="TextureRect" type="TextureRect" parent="Rotate" unique_id=25051327]

@@ -323,6 +323,13 @@ func load_file(save_file) -> void:
 	video_size = Vector2(graph_data.video_scale_x, graph_data.video_scale_y)
 	meter_length = graph_data.meter_length
 	
+	if graph_data.has("video_path") and graph_data.video_path != null:
+		if FileAccess.file_exists(graph_data.video_path):
+			video_path = graph_data.video_path
+			_on_file_selected(true, PackedStringArray([video_path]), 0)
+		else:
+			error_logger.text = "Failed to find saved video at filepath."
+	
 	points = []
 	
 	# Load the file line by line and process that dictionary to restore

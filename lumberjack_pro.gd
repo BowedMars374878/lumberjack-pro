@@ -159,12 +159,17 @@ func handle_click() -> void:
 			
 			var frame_time =  video_player.current_frame
 			
-			points.append(Point.new(mouse_location, frame_time, frame_time / second_length, meter_length, video_player.size))
+			var new_point = Point.new(mouse_location, frame_time, frame_time / second_length, meter_length, video_player.size)
+			points.append(new_point)
+			undo_action = func():
+				points.erase(new_point)
+			
+			undo_arguments = []
 			
 			for i in range(frames_to_skip):
 				video_player.next_frame()
 				video_player.current_frame += 1
-				
+			
 			point_renderer.queue_redraw()
 			graph.queue_redraw()
 	
@@ -363,6 +368,9 @@ func load_from_file(success: bool, filepaths: PackedStringArray, chosen_filetype
 		load_file(save_file)
 	else:
 		legacy_load_file(save_file)
+	
+	undo_action = func(): pass
+	undo_arguments = []
 
 
 func load_file(save_file) -> void:

@@ -480,6 +480,13 @@ func rotate_video_player():
 
 
 func _on_rotate_pressed() -> void:
+	undo_action = func():
+		video_player_degrees -= 90
+		if video_player_degrees == -90:
+			video_player_degrees = 270
+		rotate_video_player()
+	undo_arguments = []
+	
 	video_player_degrees += 90
 	if video_player_degrees == 360:
 		video_player_degrees = 0

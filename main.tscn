@@ -17,6 +17,7 @@
 [ext_resource type="Texture2D" uid="uid://cdqciyanf080t" path="res://icons/upload.png" id="10_yaehf"]
 [ext_resource type="Script" uid="uid://6vjbgwh6clu2" path="res://graph.gd" id="11_efxa6"]
 [ext_resource type="Texture2D" uid="uid://dj5dml4255bln" path="res://icons/rotate.png" id="11_yaehf"]
+[ext_resource type="Texture2D" uid="uid://cffmcs7vd1rq" path="res://icons/undo.png" id="12_074og"]
 
 [node name="Main" type="Control" unique_id=1281936700]
 layout_mode = 3
@@ -287,6 +288,26 @@ offset_top = 1.0
 offset_right = 33.0
 offset_bottom = 33.0
 texture = ExtResource("11_yaehf")
+expand_mode = 1
+
+[node name="Undo" type="Button" parent="." unique_id=307203821]
+layout_mode = 0
+offset_left = 504.0
+offset_top = 307.0
+offset_right = 538.0
+offset_bottom = 341.0
+tooltip_text = "Undo (Ctrl-Z)
+Undoes the most recent action."
+focus_mode = 0
+
+[node name="TextureRect" type="TextureRect" parent="Undo" unique_id=1169441129]
+texture_filter = 2
+layout_mode = 0
+offset_left = 1.0
+offset_top = 1.0
+offset_right = 33.0
+offset_bottom = 33.0
+texture = ExtResource("12_074og")
 expand_mode = 1
 
 [node name="NextFrame" type="Button" parent="." unique_id=652454755]
@@ -571,6 +592,7 @@ text = "X Position vs. Time"
 [connection signal="pressed" from="Save" to="." method="_on_save_pressed"]
 [connection signal="pressed" from="Load" to="." method="_on_load_pressed"]
 [connection signal="pressed" from="Rotate" to="." method="_on_rotate_pressed"]
+[connection signal="pressed" from="Undo" to="." method="_on_undo_pressed"]
 [connection signal="pressed" from="NextFrame" to="." method="_on_next_frame_pressed"]
 [connection signal="drag_ended" from="TimelineBar" to="." method="_on_timeline_bar_drag_ended"]
 [connection signal="value_changed" from="TimelineBar" to="." method="_on_timeline_bar_value_changed"]

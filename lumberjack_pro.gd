@@ -121,11 +121,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("rotate"):
 		_on_rotate_pressed()
 	if event.is_action_pressed("undo"):
-		undo_action[0].callv(undo_arguments[0])
-		undo_action.remove_at(0)
-		undo_arguments.remove_at(0)
-		point_renderer.queue_redraw()
-		graph.queue_redraw()
+		_on_undo_pressed()
 
 
 func is_mouse_in_textbox() -> bool:
@@ -520,3 +516,14 @@ func _on_rotate_pressed() -> void:
 
 func _on_line_edit_text_changed(new_text: String) -> void:
 	frames_to_skip = int(new_text)
+
+
+func _on_undo_pressed() -> void:
+	if len(undo_action) > 0:
+		undo_action[0].callv(undo_arguments[0])
+		undo_action.remove_at(0)
+		undo_arguments.remove_at(0)
+		point_renderer.queue_redraw()
+		graph.queue_redraw()
+	else:
+		error_logger.text = "Nothing to undo!"

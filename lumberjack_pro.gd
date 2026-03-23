@@ -101,6 +101,10 @@ func _process(delta: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("play"):
+		if play_button.button_pressed:
+			play_button.button_pressed = false
+		else:
+			play_button.button_pressed = true
 		_on_play_button_pressed()
 	if event.is_action_pressed("erase"):
 		eraser_button.button_pressed = true

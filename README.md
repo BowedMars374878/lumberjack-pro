@@ -4,7 +4,8 @@ Lumberjack Pro is a (much more stable) tool that allows users to track the motio
 
 Features will be added on request! Just submit an Issue on the GitHub page (or ask me in-person if you know me)!
 
-To use, just download one of the .zip files from the Releases tab, extract it, and run Lumberjack Pro.exe. **You need to have the other files in the folder for it to run.**
+On Windows, you can just download one of the .zip files from the Releases tab, extract it, and run Lumberjack Pro.exe. **You need to have the other files in the folder for it to run.**
+On Mac, things get much more complicated. Follow this guide if you need more help: https://docs.godotengine.org/en/latest/tutorials/export/running_on_macos.html
 
 ---
 

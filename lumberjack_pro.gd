@@ -259,6 +259,8 @@ func _on_video_loaded() -> void:
 	video_loaded = true
 	video_player.pause()
 	points = []
+	undo_action = []
+	undo_arguments = []
 	point_renderer.queue_redraw()
 	graph.queue_redraw()
 	play_button.button_pressed = false
@@ -294,6 +296,8 @@ func _on_timeline_bar_drag_ended(value_changed: bool) -> void:
 	point_renderer.queue_redraw()
 	graph.queue_redraw()
 	play_button.button_pressed = false
+	undo_action = []
+	undo_arguments = []
 
 
 func _on_next_frame_pressed() -> void:
@@ -419,6 +423,8 @@ func load_file(save_file) -> void:
 			error_logger.text = "Failed to find saved video at filepath."
 	
 	points = []
+	undo_action = []
+	undo_arguments = []
 	
 	# Load the file line by line and process that dictionary to restore
 	# the object it represents.
@@ -442,7 +448,9 @@ func load_file(save_file) -> void:
 
 func legacy_load_file(save_file) -> void:
 	points = []
-
+	undo_action = []
+	undo_arguments = []
+	
 	# Load the file line by line and process that dictionary to restore
 	# the object it represents.
 	while save_file.get_position() < save_file.get_length():
@@ -532,3 +540,11 @@ func _on_undo_pressed() -> void:
 		graph.queue_redraw()
 	else:
 		error_logger.text = "Nothing to undo!"
+
+
+func _on_clear_pressed() -> void:
+	points = []
+	undo_action = []
+	undo_arguments = []
+	point_renderer.queue_redraw()
+	graph.queue_redraw()

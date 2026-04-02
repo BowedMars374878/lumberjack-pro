@@ -258,6 +258,7 @@ func _on_video_loaded() -> void:
 	video_path = temp_video_path
 	video_loaded = true
 	video_player.pause()
+	points = []
 	point_renderer.queue_redraw()
 	graph.queue_redraw()
 	play_button.button_pressed = false

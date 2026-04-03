@@ -12,7 +12,7 @@ var point_selected : bool = false ## Whether a starting point is currently selec
 var meter_length : float ## The length of a meter in pixels.
 var second_length : float ## The length of a second in frames (the fps).
 
-var video_loaded = false
+var video_loaded : bool = false
 var temp_video_path
 var video_path
 var video_player_degrees : int = 0
@@ -29,7 +29,8 @@ var mouse_in_textbox : bool = false
 @onready var video_player : VideoPlayback = $VideoPlayerCenter/VideoPlayer
 @onready var video_player_box : ColorRect = $VideoPlayerCenter/VideoPlayer/ColorRect
 @onready var video_timeline : HSlider = $TimelineBar
-@onready var graph: ColorRect = $Graph
+@onready var graph : ColorRect = $Graph
+@onready var confirm_prompt : Control = $ConfirmPrompt
 
 @onready var eraser_button : Button = $EraserTool
 @onready var pencil_button : Button = $PencilTool
@@ -87,6 +88,7 @@ func _ready() -> void:
 	cursor_button.button_pressed = true
 	play_icon.show()
 	pause_icon.hide()
+	confirm_prompt.hide()
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -141,8 +143,15 @@ func is_mouse_in_textbox() -> bool:
 
 
 func handle_click() -> void:
+	if confirm_prompt.visible:
+		# If the confirmation prompt is visible, then we don't want the user clicking other stuff
+		return
+		
 	if !is_mouse_in_textbox():
 		frames_edit.release_focus()
+	else:
+		# We necessarily know it's not going to be in the video player window, so the function can be exited safely
+		return
 	
 	var mouse_location : Vector2 = get_global_mouse_position()
 	
@@ -227,12 +236,18 @@ func _on_import_button_pressed() -> void:
 
 
 func _on_file_selected(success: bool, filepaths: PackedStringArray, chosen_filetype: int) -> void:
-	if success == false:
+	if success == false: # Checks that the user didn't just close the file selection window
 		error_logger.text = "File selection cancelled by user."
-		return
-	
-	temp_video_path = filepaths[0]
-	video_player.set_video_path(filepaths[0])
+	elif not video_loaded:
+		# If no video is loaded, then there shouldn't be any points to risk deleting
+		# unless the import button was just pressed, in which case they don't need a
+		# second confirmation prompt.
+		temp_video_path = filepaths[0]
+		video_player.set_video_path(filepaths[0])
+	elif await confirm_prompt.get_confirmation(): # Check to make sure the user knows it'll delete their points
+		# If so, proceed with video loading
+		temp_video_path = filepaths[0]
+		video_player.set_video_path(filepaths[0])
 
 
 func _on_eraser_tool_pressed() -> void:
@@ -256,11 +271,12 @@ func _on_video_loaded() -> void:
 	video_timeline.value = 0
 	second_length = video_player.get_video_framerate()
 	video_path = temp_video_path
+	if video_loaded:
+		points = []
+		undo_action = []
+		undo_arguments = []
 	video_loaded = true
 	video_player.pause()
-	points = []
-	undo_action = []
-	undo_arguments = []
 	point_renderer.queue_redraw()
 	graph.queue_redraw()
 	play_button.button_pressed = false
@@ -402,6 +418,10 @@ func load_from_file(success: bool, filepaths: PackedStringArray, chosen_filetype
 
 
 func load_file(save_file) -> void:
+	if !points.is_empty(): # Only prompt confirmation if there are points that would get deleted
+		if not await confirm_prompt.get_confirmation(): # Make sure the user knows it'll clear their graph
+			return # If not, then stop the process
+	
 	var graph_info = save_file.get_line()
 	var json = JSON.new()
 	var graph_parse_result = json.parse(graph_info)
@@ -415,7 +435,9 @@ func load_file(save_file) -> void:
 	if graph_data.has("video_path") and graph_data.video_path != null:
 		if FileAccess.file_exists(graph_data.video_path):
 			video_path = graph_data.video_path
-			_on_file_selected(true, PackedStringArray([video_path]), 0)
+			video_loaded = false
+			video_player.close()
+			_on_file_selected(true, PackedStringArray([video_path]), 0) # Loads the video
 			
 			video_player_degrees = graph_data.video_player_degrees
 			rotate_video_player()
@@ -543,8 +565,12 @@ func _on_undo_pressed() -> void:
 
 
 func _on_clear_pressed() -> void:
-	points = []
-	undo_action = []
-	undo_arguments = []
-	point_renderer.queue_redraw()
-	graph.queue_redraw()
+	if points.is_empty(): # Make sure there's any point in pressing the clear button
+		error_logger.text = "No points to remove!"
+		return
+	if await confirm_prompt.get_confirmation(): # Make sure the user meant to clear their graph
+		points = []
+		undo_action = []
+		undo_arguments = []
+		point_renderer.queue_redraw()
+		graph.queue_redraw()
